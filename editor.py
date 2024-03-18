@@ -2,6 +2,7 @@ import sys, time
 import pygame
 
 from scripts.utils import load_image, draw_text
+from scripts.editor_btn import Editor_Tile_Btn
 
 
 class Editor:
@@ -22,7 +23,7 @@ class Editor:
             "FPS", antialias=False, color=pygame.Color("white")
         )
         self.scroll = [0, 0]
-        self.selected_tile = None
+        self.selected_tile: None | Editor_Tile_Btn = None
         self.tile_images: dict[str, pygame.Surface] = {
             "grass_left": self.tileset.subsurface((16, 16, 16, 16)),
             "grass_middle": self.tileset.subsurface((48, 16, 16, 16)),
@@ -36,6 +37,7 @@ class Editor:
             "stone_left": self.tileset.subsurface((240, 112, 16, 16)),
             "stone_middle": self.tileset.subsurface((272, 112, 16, 16)),
             "stone_right": self.tileset.subsurface((304, 112, 16, 16)),
+            "glyph": self.tileset.subsurface((16, 320, 16, 16)),
         }
 
         for img in self.tile_images:
@@ -44,9 +46,23 @@ class Editor:
             )
 
         self.img_list = list(self.tile_images)
+
+        self.editor_tile_btns: list[Editor_Tile_Btn] = []
+
+        for i in range(len(self.img_list)):
+            img_x = 48
+            img_y = i * 72 + 96
+            if img_y > self.SCREEN_SIZE[1] - 72:
+                img_x += 72
+                img_y = len(self.img_list) % i * 72 + 24
+            self.editor_tile_btns.append(Editor_Tile_Btn([img_x, img_y], self.tile_images[self.img_list[i]], self.img_list[i]))
+
         self.prop_images: dict[str, pygame.Surface] = {}
 
     def run_main_loop(self):
+
+        clicked_prev = pygame.mouse.get_pressed()
+
         while True:
             for e in pygame.event.get():
                 if e.type == pygame.QUIT:
@@ -60,33 +76,30 @@ class Editor:
 
             mx, my = pygame.mouse.get_pos()
 
+            clicked_curr = pygame.mouse.get_pressed()
+            left_click = clicked_curr[0] and not clicked_prev[0]
+            clicked_prev = clicked_curr
+
             # RENDERING
             self.screen.fill("black")
 
-            pygame.draw.rect(self.screen, pygame.Color(45, 43, 85), (0, 0, 288, self.SCREEN_SIZE[1]))
-            pygame.draw.rect(self.screen, pygame.Color(45, 43, 85), (0, 0, self.SCREEN_SIZE[0], 48))
+            pygame.draw.rect(
+                self.screen, pygame.Color(45, 43, 85), (0, 0, 288, self.SCREEN_SIZE[1])
+            )
+            pygame.draw.rect(
+                self.screen, pygame.Color(45, 43, 85), (0, 0, self.SCREEN_SIZE[0], 48)
+            )
 
             # render sidebar
-            for i in range(len(self.img_list)):
-                img_x = 48
-                img_y = i * 72 + 96
-                if img_y > self.SCREEN_SIZE[1] - 72:
-                    img_x += 72
-                    img_y = len(self.img_list) % i + 96
-                self.screen.blit(self.tile_images[self.img_list[i]], (img_x, img_y))
-                
-            # self.screen.blit(self.tile_images["grass_left"], (100, 30))
-            # self.screen.blit(self.tile_images["grass_middle"], (100, 50))
-            # self.screen.blit(self.tile_images["grass_right"], (100, 70))
-            # self.screen.blit(self.tile_images["stone_left"], (100, 90))
-            # self.screen.blit(self.tile_images["stone_middle"], (100, 110))
-            # self.screen.blit(self.tile_images["stone_right"], (100, 130))
-            # self.screen.blit(self.tile_images["dirt_left"], (100, 150))
-            # self.screen.blit(self.tile_images["dirt_middle"], (100, 170))
-            # self.screen.blit(self.tile_images["dirt_right"], (100, 190))
-            # self.screen.blit(self.tile_images["dirt_left_low"], (100, 210))
-            # self.screen.blit(self.tile_images["dirt_middle_low"], (100, 230))
-            # self.screen.blit(self.tile_images["dirt_right_low"], (100, 250))
+            for btn in self.editor_tile_btns:
+                btn.render(self.screen)
+            
+
+            if mx <= 288 and left_click:
+                for btn in self.editor_tile_btns:
+                    rect = pygame.Rect(btn.loc[0], btn.loc[1], btn.img.get_width(), btn.img.get_height())
+                    if rect.collidepoint(mx, my):
+                        self.selected_tile = btn
 
             self.screen.blit(self.tileset, (500, 500))
 
@@ -104,16 +117,22 @@ class Editor:
             )
 
             if mx > 288 and my > 48:
-                pygame.draw.rect(
-                    self.screen,
-                    "lightblue",
-                    (
-                        (mx // self.SCALED_TILE_SIZE) * self.SCALED_TILE_SIZE,
-                        (my // self.SCALED_TILE_SIZE) * self.SCALED_TILE_SIZE,
-                        self.SCALED_TILE_SIZE,
-                        self.SCALED_TILE_SIZE,
-                    ),
-                )
+                t = self.selected_tile
+                tile_x = (mx // self.SCALED_TILE_SIZE) * self.SCALED_TILE_SIZE
+                tile_y = (my // self.SCALED_TILE_SIZE) * self.SCALED_TILE_SIZE
+                if t:
+                    self.screen.blit(t.img, (tile_x, tile_y))
+                else:
+                    pygame.draw.rect(
+                        self.screen,
+                        "lightblue",
+                        (
+                            tile_x,
+                            tile_y,
+                            self.SCALED_TILE_SIZE,
+                            self.SCALED_TILE_SIZE,
+                        ),
+                    )
 
             self.screen.blit(self.screen, (0, 0))
 
