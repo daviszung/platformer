@@ -1,7 +1,6 @@
 import sys, time
 import pygame
 
-
 class Game:
     def __init__(self):
         pygame.init()
@@ -16,7 +15,7 @@ class Game:
         )
 
     def run_main_loop(self):
-        while True:
+        while 1:
             for e in pygame.event.get():
                 if e.type == pygame.QUIT:
                     pygame.quit()
@@ -30,12 +29,15 @@ class Game:
             # RENDERING
             self.screen.fill("black")
 
-            fps_display = self.font.render(f"{round(self.clock.get_fps())} FPS", False, "white")
+            fps_display = self.font.render(
+                f"{round(self.clock.get_fps())} FPS", False, "white"
+            )
 
             self.screen.blit(fps_display, (20, 20))
 
             pygame.display.update()
             self.clock.tick()
+
 
 game = Game()
 game.run_main_loop()

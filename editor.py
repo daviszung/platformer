@@ -1,7 +1,7 @@
 import sys, time
 import pygame
 
-from scripts.utils import load_image, draw_text, save_map
+from scripts.utils import load_image, load_images, draw_text, save_map
 from scripts.editor_btn import Editor_Tile_Btn
 
 
@@ -12,8 +12,10 @@ class Editor:
         self.SCALING_FACTOR = 3
         self.BASE_TILE_SIZE = 16
         self.SCALED_TILE_SIZE = self.BASE_TILE_SIZE * self.SCALING_FACTOR
-        self.SCREEN_SIZE = (1600, 900)
+        self.SCREEN_SIZE = (1600, 960)
         self.screen = pygame.display.set_mode(self.SCREEN_SIZE)
+        self.bg_size = (self.SCREEN_SIZE[0] // 6, self.SCREEN_SIZE[1] // 6)
+        self.bg = pygame.Surface(self.bg_size)
         self.tileset = load_image("tileset.png")
         self.clock = pygame.time.Clock()
         self.game_state: str = "game"
@@ -23,8 +25,19 @@ class Editor:
             "FPS", antialias=False, color=pygame.Color("white")
         )
         self.scroll: list[float] = [0, 0]
-        self.current_map: dict[str, dict[str, object]] = {"tilemap": {}, "propmap": {}}
+        self.current_map: dict[str, dict[str, object]] = {
+            "tilemap": {},
+            "propmap": {},
+            "spawnpoint": {},
+        }
         self.selected_tile: None | Editor_Tile_Btn = None
+        self.bg_images = load_images("background")
+
+        for i, img in enumerate(self.bg_images):
+            self.bg_images[i] = pygame.transform.scale(img, self.bg_size)
+        # for i, img in enumerate(self.bg_images):
+            # self.bg_images[i] = pygame.transform.scale(img, self.SCREEN_SIZE)
+        print(self.bg_images)
         self.tile_images: dict[str, pygame.Surface] = {
             "grass_left": self.tileset.subsurface((16, 16, 16, 16)),
             "grass_middle": self.tileset.subsurface((48, 16, 16, 16)),
@@ -66,9 +79,7 @@ class Editor:
 
     def run_main_loop(self):
 
-        clicked_prev = pygame.mouse.get_pressed()
-
-        while True:
+        while 1:
 
             t = time.time()
             dt = t - self.last_time
@@ -85,21 +96,20 @@ class Editor:
                         print("save")
 
             keys = pygame.key.get_pressed()
-            if keys[pygame.K_s]:
-                self.scroll[0] -= 4 * dt
+            if keys[pygame.K_s] and self.scroll[0] > 0:
+                self.scroll[0] -= 5 * dt
             if keys[pygame.K_f]:
-                self.scroll[0] += 4 * dt
+                self.scroll[0] += 5 * dt
             if keys[pygame.K_e]:
-                self.scroll[1] -= 4 * dt
-            if keys[pygame.K_d]:
-                self.scroll[1] += 4 * dt
+                self.scroll[1] -= 5 * dt
+            if keys[pygame.K_d] and self.scroll[1] < 0:
+                self.scroll[1] += 5 * dt
 
             mx, my = pygame.mouse.get_pos()
 
             clicked_curr = pygame.mouse.get_pressed()
-            left_click = clicked_curr[0] and not clicked_prev[0]
-            right_click = clicked_curr[2] and not clicked_prev[2]
-            clicked_prev = clicked_curr
+            left_click = clicked_curr[0]
+            right_click = clicked_curr[2]
 
             # selecting tiles
             if mx <= 288 and left_click:
@@ -129,7 +139,22 @@ class Editor:
                     del self.current_map["tilemap"][f"{tile_x};{tile_y}"]
 
             # RENDERING
-            self.screen.fill("black")
+
+            # render bg
+            self.bg.blit(self.bg_images[0], (0 - (self.scroll[0] * 0.25 / 4), 0 - self.scroll[1] / 4))
+            self.bg.blit(self.bg_images[0], ((1600 / 6) - (self.scroll[0] * 0.25 / 4), 0 - self.scroll[1] / 4))
+            self.bg.blit(self.bg_images[1], (0 - (self.scroll[0] * 0.5 / 4), 0 - self.scroll[1] / 4))
+            self.bg.blit(self.bg_images[1], ((1600 / 6) - (self.scroll[0] * 0.5 / 4), 0 - self.scroll[1] / 4))
+            self.bg.blit(self.bg_images[2], (0 - (self.scroll[0] * 0.75 / 4), 0 - self.scroll[1] / 4))
+            self.bg.blit(self.bg_images[2], ((1600 / 6) - (self.scroll[0] * 0.75 / 4), 0 - self.scroll[1] / 4))
+            self.screen.blit(pygame.transform.scale_by(self.bg, 6), (0, 0))
+
+            # self.screen.blit(self.bg_images[0], (0 - (self.scroll[0] * 0.25), 0 - self.scroll[1] / 4))
+            # self.screen.blit(self.bg_images[0], ((1600 / 6) - (self.scroll[0] * 0.25), 0 - self.scroll[1] / 4))
+            # self.screen.blit(self.bg_images[1], (0 - (self.scroll[0] * 0.5), 0 - self.scroll[1] / 4))
+            # self.screen.blit(self.bg_images[1], ((1600 / 6) - (self.scroll[0] * 0.5), 0 - self.scroll[1] / 4))
+            # self.screen.blit(self.bg_images[2], (0 - (self.scroll[0] * 0.75), 0 - self.scroll[1] / 4))
+            # self.screen.blit(self.bg_images[2], ((1600 / 6) - (self.scroll[0] * 0.75), 0 - self.scroll[1] / 4))
 
             # render map
             for data in self.current_map["tilemap"]:
