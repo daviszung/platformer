@@ -22,7 +22,8 @@ class Editor:
         self.fps_display = self.font.render(
             "FPS", antialias=False, color=pygame.Color("white")
         )
-        self.scroll = [0, 0]
+        self.scroll: list[float] = [0, 0]
+        self.current_map: dict[str, dict[str, object]] = {"tilemap": {}, "propmap": {}}
         self.selected_tile: None | Editor_Tile_Btn = None
         self.tile_images: dict[str, pygame.Surface] = {
             "grass_left": self.tileset.subsurface((16, 16, 16, 16)),
@@ -64,25 +65,64 @@ class Editor:
         clicked_prev = pygame.mouse.get_pressed()
 
         while True:
-            for e in pygame.event.get():
-                if e.type == pygame.QUIT:
-                    pygame.quit()
-                    return
 
             t = time.time()
             dt = t - self.last_time
             dt *= 60
             self.last_time = t
 
+            for e in pygame.event.get():
+                if e.type == pygame.QUIT:
+                    pygame.quit()
+                    return
+
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_s]:
+                self.scroll[0] -= 4 * dt
+            if keys[pygame.K_f]:
+                self.scroll[0] += 4 * dt
+            if keys[pygame.K_e]:
+                self.scroll[1] -= 4 * dt
+            if keys[pygame.K_d]:
+                self.scroll[1] += 4 * dt
+
+
+
             mx, my = pygame.mouse.get_pos()
 
             clicked_curr = pygame.mouse.get_pressed()
             left_click = clicked_curr[0] and not clicked_prev[0]
+            right_click = clicked_curr[2] and not clicked_prev[2]
             clicked_prev = clicked_curr
+
+            # selecting tiles
+            if mx <= 288 and left_click:
+                for btn in self.editor_tile_btns:
+                    rect = pygame.Rect(btn.loc[0], btn.loc[1], btn.img.get_width(), btn.img.get_height())
+                    if rect.collidepoint(mx, my):
+                        self.selected_tile = btn
+            
+            if mx > 288 and left_click and self.selected_tile:
+                tile_x, tile_y = int((mx + self.scroll[0]) // self.SCALED_TILE_SIZE), int((my + self.scroll[1]) // self.SCALED_TILE_SIZE)
+                print(tile_x, tile_y)
+                self.current_map["tilemap"][f"{tile_x};{tile_y}"] = {"type": self.selected_tile.name, "pos": [tile_x, tile_y]}
+            if mx > 288 and right_click:
+                tile_x, tile_y = int((mx + self.scroll[0]) // self.SCALED_TILE_SIZE), int((my + self.scroll[1]) // self.SCALED_TILE_SIZE)
+                print(tile_x, tile_y, self.current_map)
+                if f"{tile_x};{tile_y}" in self.current_map["tilemap"]:
+                    del self.current_map["tilemap"][f"{tile_x};{tile_y}"]
+
 
             # RENDERING
             self.screen.fill("black")
 
+            # render map
+            for data in self.current_map["tilemap"]:
+                d = self.current_map["tilemap"][data]
+                self.screen.blit(self.tile_images[d["type"]], (d["pos"][0] * self.SCALED_TILE_SIZE - self.scroll[0], d["pos"][1] * self.SCALED_TILE_SIZE - self.scroll[1])) # type: ignore
+
+
+            # render sidebar
             pygame.draw.rect(
                 self.screen, pygame.Color(45, 43, 85), (0, 0, 288, self.SCREEN_SIZE[1])
             )
@@ -90,36 +130,35 @@ class Editor:
                 self.screen, pygame.Color(45, 43, 85), (0, 0, self.SCREEN_SIZE[0], 48)
             )
 
-            # render sidebar
             for btn in self.editor_tile_btns:
                 btn.render(self.screen)
-            
 
-            if mx <= 288 and left_click:
-                for btn in self.editor_tile_btns:
-                    rect = pygame.Rect(btn.loc[0], btn.loc[1], btn.img.get_width(), btn.img.get_height())
-                    if rect.collidepoint(mx, my):
-                        self.selected_tile = btn
-
-            self.screen.blit(self.tileset, (500, 500))
+            # self.screen.blit(self.tileset, (500, 500))
 
             draw_text(
                 self.screen, f"{round(self.clock.get_fps())} FPS", [20, 20], self.font
             )
 
-            draw_text(self.screen, f"mouse ({mx}, {my})", [120, 20], self.font)
+            draw_text(self.screen, f"mouse ({round(mx)}, {round(my)})", [120, 20], self.font)
 
             draw_text(
                 self.screen,
-                f"tile ({mx // self.SCALED_TILE_SIZE}, {my // self.SCALED_TILE_SIZE})",
+                f"tile ({(mx + self.scroll[0]) // self.SCALED_TILE_SIZE}, {(my + self.scroll[1]) // self.SCALED_TILE_SIZE})",
                 [280, 20],
                 self.font,
             )
 
+            draw_text(
+                self.screen,
+                f"scroll: {round(self.scroll[0]), round(self.scroll[1])}",
+                [460, 20],
+                self.font
+            )
+
             if mx > 288 and my > 48:
                 t = self.selected_tile
-                tile_x = (mx // self.SCALED_TILE_SIZE) * self.SCALED_TILE_SIZE
-                tile_y = (my // self.SCALED_TILE_SIZE) * self.SCALED_TILE_SIZE
+                tile_x = int((mx // self.SCALED_TILE_SIZE) * self.SCALED_TILE_SIZE)
+                tile_y = int((my // self.SCALED_TILE_SIZE) * self.SCALED_TILE_SIZE)
                 if t:
                     self.screen.blit(t.img, (tile_x, tile_y))
                 else:
