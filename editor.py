@@ -36,14 +36,8 @@ class Editor:
         self.selected_tile: None | Editor_Tile_Btn = None
         self.bg_images = load_images("background", True)
 
-
-
         for i, img in enumerate(self.bg_images):
             self.bg_images[i] = pygame.transform.scale(img, self.bg_size)
-        # for i, img in enumerate(self.bg_images):
-            # self.bg_images[i] = pygame.transform.scale(img, self.SCREEN_SIZE)
-        print(self.bg_images)
-
 
         self.tile_images: dict[str, pygame.Surface] = {
             "grass_left": self.tileset.subsurface((16, 16, 16, 16)),
@@ -66,40 +60,70 @@ class Editor:
             "t2": self.star_tileset.subsurface((16, 144, 16, 16)),
             "t3": self.star_tileset.subsurface((32, 144, 16, 16)),
             "t4": self.star_tileset.subsurface((48, 144, 16, 16)),
+            "t5": self.star_tileset.subsurface((64, 144, 16, 16)),
+            "t6": self.star_tileset.subsurface((80, 144, 16, 16)),
+            "t7": self.star_tileset.subsurface((96, 144, 16, 16)),
+            "t8": self.star_tileset.subsurface((112, 144, 16, 16)),
+            "t10": self.star_tileset.subsurface((128, 144, 16, 16)),
+            "t11": self.star_tileset.subsurface((144, 144, 16, 16)),
+            "t12": self.star_tileset.subsurface((160, 144, 16, 16)),
+            "t13": self.star_tileset.subsurface((176, 144, 16, 16)),
+            "t14": self.star_tileset.subsurface((192, 144, 16, 16)),
+            "t15": self.star_tileset.subsurface((208, 144, 16, 16)),
+            "t16": self.star_tileset.subsurface((224, 144, 16, 16)),
+            "t17": self.star_tileset.subsurface((240, 144, 16, 16)),
+            "t18": self.star_tileset.subsurface((256, 144, 16, 16)),
+            "t19": self.star_tileset.subsurface((272, 144, 16, 16)),
+            "t20": self.star_tileset.subsurface((0, 160, 16, 16)),
+            "t21": self.star_tileset.subsurface((16, 160, 16, 16)),
+            "t22": self.star_tileset.subsurface((32, 160, 16, 16)),
+            "t23": self.star_tileset.subsurface((48, 160, 16, 16)),
+            "t24": self.star_tileset.subsurface((64, 160, 16, 16)),
+            "t25": self.star_tileset.subsurface((80, 160, 16, 16)),
         }
 
-        for img in self.tile_images:
-            self.tile_images[img] = pygame.transform.scale_by(
-                self.tile_images[img], self.SCALING_FACTOR
-            )
+        # for img in self.tile_images:
+        #     self.tile_images[img] = pygame.transform.scale_by(
+        #         self.tile_images[img], self.SCALING_FACTOR
+        #     )
 
         for img in self.star_tile_images:
             self.star_tile_images[img] = pygame.transform.scale_by(
                 self.star_tile_images[img], self.SCALING_FACTOR
             )
         
-        self.img_list = list(self.tile_images)
+        # self.img_list = list(self.tile_images)
+        self.img_list = list(self.star_tile_images)
 
         self.editor_tile_btns: list[Editor_Tile_Btn] = []
 
         for i in range(len(self.img_list)):
-            img_x = 48
-            img_y = i * 72 + 96
-            if img_y > self.SCREEN_SIZE[1] - 72:
-                img_x += 72
-                img_y = len(self.img_list) % i * 72 + 24
+            img_x = 48 + (72 * (i // 12))
+            img_y = i % 12 * 72 + 96
             self.editor_tile_btns.append(
                 Editor_Tile_Btn(
-                    [img_x, img_y], self.tile_images[self.img_list[i]], self.img_list[i]
+                    [img_x, img_y], self.star_tile_images[self.img_list[i]], self.img_list[i]
                 )
             )
+
+        # for i in range(len(self.star_tile_images)):
+        #     img_x = 48
+        #     img_y = i * 72 + 96
+        #     if img_y > self.SCREEN_SIZE[1] - 72:
+        #         img_x += 72
+        #         img_y = len(self.star_tile_images) % i * 72 + 24
+        #     self.editor_tile_btns.append(
+        #         Editor_Tile_Btn(
+        #             [img_x, img_y], self.star_tile_images[self.img_list[i]], self.img_list[i]
+        #         )
+        #     )
 
         self.prop_images: dict[str, pygame.Surface] = {}
 
         self.did_scroll: bool = True
 
         # first paint of bg
-        self.update_bg()
+        self.current_bg = self.update_bg()
 
 
     def update_bg(self):
@@ -114,8 +138,8 @@ class Editor:
 
 
     def run_main_loop(self):
-
         while 1:
+
             self.did_scroll = False
 
             t = time.time()
@@ -181,37 +205,16 @@ class Editor:
 
             # RENDERING
 
-            # render bg
-
-            # self.bg.blit(self.bg_images[0], (0 - (self.scroll[0] * 0.25 / 4), 0 - self.scroll[1] * 0.25 / 4))
-            # self.bg.blit(self.bg_images[0], ((1600 / 6) - (self.scroll[0] * 0.25 / 4), 0 - self.scroll[1] * 0.25 / 4))
-            # self.bg.blit(self.bg_images[1], (0 - (self.scroll[0] * 0.5 / 4), 0 - self.scroll[1] * 0.5 / 4))
-            # self.bg.blit(self.bg_images[1], ((1600 / 6) - (self.scroll[0] * 0.5 / 4), 0 - self.scroll[1] * 0.5 / 4))
-            # self.bg.blit(self.bg_images[2], (0 - (self.scroll[0] * 0.75 / 4), 0 - self.scroll[1] * 0.75 / 4))
-            # self.bg.blit(self.bg_images[2], ((1600 / 6) - (self.scroll[0] * 0.75 / 4), 0 - self.scroll[1] * 0.75 / 4))
-
-            # method 3
+            # rendering bg
             if self.did_scroll:
                 bg = self.update_bg()
                 self.current_bg = bg
             self.screen.blit(self.current_bg, (0, 0))
 
-            # self.screen.blit(self.bg_images[0], (0 - (self.scroll[0] * 0.25), 0 - self.scroll[1] / 4))
-            # self.screen.blit(self.bg_images[0], ((1600 / 6) - (self.scroll[0] * 0.25), 0 - self.scroll[1] / 4))
-            # self.screen.blit(self.bg_images[1], (0 - (self.scroll[0] * 0.5), 0 - self.scroll[1] / 4))
-            # self.screen.blit(self.bg_images[1], ((1600 / 6) - (self.scroll[0] * 0.5), 0 - self.scroll[1] / 4))
-            # self.screen.blit(self.bg_images[2], (0 - (self.scroll[0] * 0.75), 0 - self.scroll[1] / 4))
-            # self.screen.blit(self.bg_images[2], ((1600 / 6) - (self.scroll[0] * 0.75), 0 - self.scroll[1] / 4))
-
-            # self.screen.blit(self.star_tile_images["t1"], (500, 500))
-            # self.screen.blit(self.star_tile_images["t2"], (550, 500))
-            # self.screen.blit(self.star_tile_images["t3"], (600, 500))
-            # self.screen.blit(self.star_tile_images["t4"], (650, 500))
-
             # render map
             for data in self.current_map["tilemap"]:
                 d = self.current_map["tilemap"][data]
-                self.screen.blit(self.tile_images[d["type"]], (d["pos"][0] * self.SCALED_TILE_SIZE - self.scroll[0], d["pos"][1] * self.SCALED_TILE_SIZE - self.scroll[1]))  # type: ignore
+                self.screen.blit(self.star_tile_images[d["type"]], (d["pos"][0] * self.SCALED_TILE_SIZE - self.scroll[0], d["pos"][1] * self.SCALED_TILE_SIZE - self.scroll[1]))  # type: ignore
 
             # render sidebar
             pygame.draw.rect(
@@ -223,8 +226,6 @@ class Editor:
 
             for btn in self.editor_tile_btns:
                 btn.render(self.screen)
-
-            # self.screen.blit(self.tileset, (500, 500))
 
             draw_text(
                 self.screen, f"{round(self.clock.get_fps())} FPS", [20, 20], self.font
