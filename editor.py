@@ -80,6 +80,10 @@ class Editor:
             "t23": self.star_tileset.subsurface((48, 160, 16, 16)),
             "t24": self.star_tileset.subsurface((64, 160, 16, 16)),
             "t25": self.star_tileset.subsurface((80, 160, 16, 16)),
+            "t26": self.star_tileset.subsurface((96, 160, 16, 16)),
+            "t27": self.star_tileset.subsurface((112, 160, 16, 16)),
+            "t28": self.star_tileset.subsurface((128, 160, 16, 16)),
+            "t29": self.star_tileset.subsurface((144, 160, 16, 16)),
         }
 
         # for img in self.tile_images:
