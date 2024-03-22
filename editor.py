@@ -6,6 +6,7 @@ from scripts.editor_btn import Editor_Tile_Btn
 from scripts.map import Map
 from scripts.background import Bg
 
+
 class Editor:
     def __init__(self):
         pygame.init()
@@ -58,11 +59,13 @@ class Editor:
         }
 
         self.prop_images: dict[str, pygame.Surface] = {
-            "small_tree": self.star_tileset.subsurface((0, 80, 64, 64))
+            "small_tree": self.star_tileset.subsurface((0, 80, 64, 64)),
+            "big_tree": self.star_tileset.subsurface((160, 0, 128, 144)),
         }
 
         self.prop_image_icons: dict[str, pygame.Surface] = {
-            "small_tree": self.prop_images["small_tree"].subsurface((16, 32, 16, 16))
+            "small_tree": self.prop_images["small_tree"].subsurface((16, 32, 16, 16)),
+            "big_tree": self.prop_images["big_tree"].subsurface((80, 32, 16, 16)),
         }
 
         # scale up tiles
@@ -73,9 +76,7 @@ class Editor:
 
         # scale up props
         for img in self.prop_images:
-            self.prop_images[img] = pygame.transform.scale_by(
-                self.prop_images[img], 3
-            )
+            self.prop_images[img] = pygame.transform.scale_by(self.prop_images[img], 3)
 
         # scale up prop image icons
         for img in self.prop_image_icons:
@@ -87,7 +88,7 @@ class Editor:
 
         self.img_list = list(self.star_tile_images)
         self.editor_tile_btns: list[Editor_Tile_Btn] = []
-        self.editor_prop_btns: list[Editor_Tile_Btn] = [Editor_Tile_Btn([48, 96], self.prop_image_icons["small_tree"], "small_tree")]
+        self.editor_prop_btns: list[Editor_Tile_Btn] = []
 
         for i in range(len(self.img_list)):
             img_x = 48 + (72 * (i // 12))
@@ -96,6 +97,18 @@ class Editor:
                 Editor_Tile_Btn(
                     [img_x, img_y],
                     self.star_tile_images[self.img_list[i]],
+                    self.img_list[i],
+                )
+            )
+
+        self.img_list = list(self.prop_image_icons)
+        for i in range(len(self.img_list)):
+            img_x = 48 + (72 * (i // 12))
+            img_y = i % 12 * 72 + 96
+            self.editor_prop_btns.append(
+                Editor_Tile_Btn(
+                    [img_x, img_y],
+                    self.prop_image_icons[self.img_list[i]],
                     self.img_list[i],
                 )
             )
@@ -178,8 +191,11 @@ class Editor:
                         )
                         if rect.collidepoint(mx, my):
                             self.selected_tile = btn
-                
-                if self.sidebar_mode_toggle_btn.collidepoint(mx, my) and left_click_once:
+
+                if (
+                    self.sidebar_mode_toggle_btn.collidepoint(mx, my)
+                    and left_click_once
+                ):
                     if self.sidebar_mode == "tiles":
                         self.sidebar_mode = "props"
                     elif self.sidebar_mode == "props":
@@ -238,7 +254,6 @@ class Editor:
                 for btn in self.editor_prop_btns:
                     btn.render(self.screen)
 
-
             draw_text(
                 self.screen, f"{round(self.clock.get_fps())} FPS", [20, 20], self.font
             )
@@ -247,22 +262,20 @@ class Editor:
                 self.screen, f"mouse ({round(mx)}, {round(my)})", [120, 20], self.font
             )
 
-            draw_text(
-                self.screen, f"{self.sidebar_mode}", [124, 56], self.font
-            )
+            draw_text(self.screen, f"{self.sidebar_mode}", [124, 56], self.font)
 
             draw_text(
                 self.screen,
                 f"tile ({(mx + self.scroll[0]) // self.SCALED_TILE_SIZE}, {(my + self.scroll[1]) // self.SCALED_TILE_SIZE})",
                 [280, 20],
-                self.font
+                self.font,
             )
 
             draw_text(
                 self.screen,
                 f"scroll: {round(self.scroll[0]), round(self.scroll[1])}",
                 [460, 20],
-                self.font
+                self.font,
             )
 
             if mx > 288 and my > 48:
@@ -270,7 +283,10 @@ class Editor:
                 tile_x = int((mx // self.SCALED_TILE_SIZE) * self.SCALED_TILE_SIZE)
                 tile_y = int((my // self.SCALED_TILE_SIZE) * self.SCALED_TILE_SIZE)
                 if t:
-                    self.screen.blit(t.img, (tile_x, tile_y))
+                    if self.sidebar_mode == "tiles":
+                        self.screen.blit(t.img, (tile_x, tile_y))
+                    elif self.sidebar_mode == "props":
+                        self.screen.blit(self.prop_images[t.name], (tile_x, tile_y))
                 else:
                     pygame.draw.rect(
                         self.screen,
