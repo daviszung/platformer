@@ -3,7 +3,7 @@ import pygame
 
 from scripts.utils import load_image, load_images, draw_text, save_map
 from scripts.editor_btn import Editor_Tile_Btn
-
+from scripts.map import Map
 
 class Editor:
     def __init__(self):
@@ -25,11 +25,6 @@ class Editor:
         self.fps_display = self.font.render("FPS", False, pygame.Color("white"))
         self.last_scroll_pos = [0, 0]
         self.scroll: list[float] = [0, 0]
-        self.current_map: dict[str, dict[str, object]] = {
-            "tilemap": {},
-            "propmap": {},
-            "spawnpoint": {},
-        }
         self.selected_tile: None | Editor_Tile_Btn = None
         self.bg_images = load_images("background", True)
 
@@ -67,17 +62,15 @@ class Editor:
             "t29": self.star_tileset.subsurface((144, 160, 16, 16)),
         }
 
-        # images must be scaled up for the sidebar UI, but stay the same size for rendering purposes
-        self.tile_buttons = self.star_tile_images.copy()
-        for img in self.tile_buttons:
-            self.tile_buttons[img] = pygame.transform.scale_by(
-                self.tile_buttons[img], self.SCALING_FACTOR
-            )
+        self.prop_images: dict[str, pygame.Surface] = {}
 
+        # scale up tiles
         for img in self.star_tile_images:
             self.star_tile_images[img] = pygame.transform.scale_by(
-                self.star_tile_images[img], self.SCALING_FACTOR
+                self.star_tile_images[img], 3
             )
+
+        self.map = Map(self.SCALED_TILE_SIZE, self.star_tile_images)
 
         self.img_list = list(self.star_tile_images)
         self.editor_tile_btns: list[Editor_Tile_Btn] = []
@@ -88,18 +81,16 @@ class Editor:
             self.editor_tile_btns.append(
                 Editor_Tile_Btn(
                     [img_x, img_y],
-                    self.tile_buttons[self.img_list[i]],
+                    self.star_tile_images[self.img_list[i]],
                     self.img_list[i],
                 )
             )
-
-        self.prop_images: dict[str, pygame.Surface] = {}
 
         self.did_scroll: bool = True
 
         # first paint of bg
         self.current_bg = self.update_bg()
-        self.update_tilemap()
+        self.map.render_to_surf(self.current_bg, self.scroll)
 
     def update_bg(self):
         tile1 = self.scroll[0] // (self.SCREEN_SIZE[0] * 4)
@@ -127,11 +118,6 @@ class Editor:
         )
         return pygame.transform.scale_by(self.bg, 6)
 
-    def update_tilemap(self):
-        for data in self.current_map["tilemap"]:
-            d = self.current_map["tilemap"][data]
-            self.current_bg.blit(self.star_tile_images[d["type"]], (d["pos"][0] * self.SCALED_TILE_SIZE - self.scroll[0], d["pos"][1] * self.SCALED_TILE_SIZE - self.scroll[1]))  # type: ignore
-
     def run_main_loop(self):
         while 1:
 
@@ -148,8 +134,13 @@ class Editor:
                     return
                 if e.type == pygame.KEYDOWN and pygame.key.get_mods() == 4097:
                     if e.dict["key"] == pygame.K_s:
-                        save_map(self.current_map)
+                        save_map(self.map.current_map)
                         print("saved map")
+                    if e.dict["key"] == pygame.K_l:
+                        self.map.load_level("map1")
+                        self.current_bg = self.update_bg()
+                        self.map.render_to_surf(self.current_bg, self.scroll)
+                        print("loaded map")
 
             keys = pygame.key.get_pressed()
             if keys[pygame.K_s] and self.scroll[0] > 0:
@@ -187,25 +178,25 @@ class Editor:
                 tile_x, tile_y = int(
                     (mx + self.scroll[0]) // self.SCALED_TILE_SIZE
                 ), int((my + self.scroll[1]) // self.SCALED_TILE_SIZE)
-                self.current_map["tilemap"][f"{tile_x};{tile_y}"] = {
+                self.map.current_map["tilemap"][f"{tile_x};{tile_y}"] = {
                     "type": self.selected_tile.name,
                     "pos": [tile_x, tile_y],
                 }
-                self.update_tilemap()
+                self.map.render_to_surf(self.current_bg, self.scroll)
 
             if mx > 288 and right_click:
                 tile_x, tile_y = int(
                     (mx + self.scroll[0]) // self.SCALED_TILE_SIZE
                 ), int((my + self.scroll[1]) // self.SCALED_TILE_SIZE)
-                if f"{tile_x};{tile_y}" in self.current_map["tilemap"]:
-                    del self.current_map["tilemap"][f"{tile_x};{tile_y}"]
+                if f"{tile_x};{tile_y}" in self.map.current_map["tilemap"]:
+                    del self.map.current_map["tilemap"][f"{tile_x};{tile_y}"]
 
             # RENDERING
 
             # rendering bg and map
             if self.did_scroll:
                 self.current_bg = self.update_bg()
-                self.update_tilemap()
+                self.map.render_to_surf(self.current_bg, self.scroll)
             self.screen.blit(self.current_bg, (0, 0))
 
             # render sidebar
@@ -265,4 +256,4 @@ class Editor:
 
 editor = Editor()
 editor.run_main_loop()
-sys.exit()  #
+sys.exit()
