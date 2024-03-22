@@ -1,5 +1,3 @@
-# map should have a function that loads a file as a level
-# a render method
 import os, json
 import pygame
 

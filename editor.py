@@ -4,6 +4,7 @@ import pygame
 from scripts.utils import load_image, load_images, draw_text, save_map
 from scripts.editor_btn import Editor_Tile_Btn
 from scripts.map import Map
+from scripts.background import Bg
 
 class Editor:
     def __init__(self):
@@ -14,22 +15,15 @@ class Editor:
         self.SCALED_TILE_SIZE = self.BASE_TILE_SIZE * self.SCALING_FACTOR
         self.SCREEN_SIZE = (1600, 960)
         self.screen = pygame.display.set_mode(self.SCREEN_SIZE)
-        self.bg_size = (round(self.SCREEN_SIZE[0] / 6), round(self.SCREEN_SIZE[1] / 6))
-        self.bg = pygame.Surface(self.bg_size)
-        self.current_bg = pygame.Surface(self.SCREEN_SIZE)
-        self.tileset = load_image("tileset.png")
         self.star_tileset = load_image("star_tileset.png")
         self.clock = pygame.time.Clock()
         self.last_time = time.time()
         self.font = pygame.Font("assets/fonts/monogram.ttf")
         self.fps_display = self.font.render("FPS", False, pygame.Color("white"))
-        self.last_scroll_pos = [0, 0]
         self.scroll: list[float] = [0, 0]
         self.selected_tile: None | Editor_Tile_Btn = None
-        self.bg_images = load_images("background", True)
 
-        for i, img in enumerate(self.bg_images):
-            self.bg_images[i] = pygame.transform.scale(img, self.bg_size)
+        self.bg = Bg(self.SCREEN_SIZE, load_images("background", True))
 
         self.star_tile_images: dict[str, pygame.Surface] = {
             "t1": self.star_tileset.subsurface((0, 144, 16, 16)),
@@ -89,34 +83,8 @@ class Editor:
         self.did_scroll: bool = True
 
         # first paint of bg
-        self.current_bg = self.update_bg()
-        self.map.render_to_surf(self.current_bg, self.scroll)
-
-    def update_bg(self):
-        tile1 = self.scroll[0] // (self.SCREEN_SIZE[0] * 4)
-        tile2 = self.scroll[0] // (self.SCREEN_SIZE[0] * 2)
-        tile3 = self.scroll[0] // self.SCREEN_SIZE[0]
-        delta_scroll = (self.scroll[0] / 6) * 0.25 - (tile1 * self.bg_size[0])
-        delta_scroll2 = (self.scroll[0] / 6) * 0.5 - (tile2 * self.bg_size[0])
-        delta_scroll3 = (self.scroll[0] / 6) - (tile3 * self.bg_size[0])
-        self.bg.blit(self.bg_images[0], (0 - (delta_scroll), 0 - self.scroll[1] * 0.15))
-        self.bg.blit(
-            self.bg_images[0],
-            (self.bg_size[0] - (delta_scroll), 0 - self.scroll[1] * 0.15),
-        )
-        self.bg.blit(self.bg_images[1], (0 - (delta_scroll2), 0 - self.scroll[1] * 0.15))
-        self.bg.blit(
-            self.bg_images[1],
-            (self.bg_size[0] - (delta_scroll2), 0 - self.scroll[1] * 0.15),
-        )
-        self.bg.blit(
-            self.bg_images[2], (0 - (delta_scroll3), 0 - self.scroll[1] * 0.15)
-        )
-        self.bg.blit(
-            self.bg_images[2],
-            (self.bg_size[0] - (delta_scroll3), 0 - self.scroll[1] * 0.15),
-        )
-        return pygame.transform.scale_by(self.bg, 6)
+        self.bg.cache_bg(self.scroll)
+        self.map.render_to_surf(self.bg.current_bg, self.scroll)
 
     def run_main_loop(self):
         while 1:
@@ -138,8 +106,8 @@ class Editor:
                         print("saved map")
                     if e.dict["key"] == pygame.K_l:
                         self.map.load_level("map1")
-                        self.current_bg = self.update_bg()
-                        self.map.render_to_surf(self.current_bg, self.scroll)
+                        self.bg.cache_bg(self.scroll)
+                        self.map.render_to_surf(self.bg.current_bg, self.scroll)
                         print("loaded map")
 
             keys = pygame.key.get_pressed()
@@ -182,7 +150,7 @@ class Editor:
                     "type": self.selected_tile.name,
                     "pos": [tile_x, tile_y],
                 }
-                self.map.render_to_surf(self.current_bg, self.scroll)
+                self.map.render_to_surf(self.bg.current_bg, self.scroll)
 
             if mx > 288 and right_click:
                 tile_x, tile_y = int(
@@ -195,9 +163,9 @@ class Editor:
 
             # rendering bg and map
             if self.did_scroll:
-                self.current_bg = self.update_bg()
-                self.map.render_to_surf(self.current_bg, self.scroll)
-            self.screen.blit(self.current_bg, (0, 0))
+                self.bg.cache_bg(self.scroll)
+                self.map.render_to_surf(self.bg.current_bg, self.scroll)
+            self.screen.blit(self.bg.current_bg, (0, 0))
 
             # render sidebar
             pygame.draw.rect(
