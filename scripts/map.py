@@ -2,9 +2,10 @@ import os, json
 import pygame
 
 class Map:
-    def __init__(self, tile_size: int, tile_images: dict[str, pygame.Surface]):
+    def __init__(self, tile_size: int, tile_images: dict[str, pygame.Surface], prop_images: dict[str, pygame.Surface]):
         self.tile_size = tile_size
         self.tile_images = tile_images
+        self.prop_images = prop_images
         self.current_map: dict[str, dict[str, object]] = {
             "tilemap": {},
             "propmap": {},
@@ -32,3 +33,7 @@ class Map:
         for data in self.current_map["tilemap"]:
             d = self.current_map["tilemap"][data]
             surf.blit(self.tile_images[d["type"]], (d["pos"][0] * self.tile_size - scroll[0], d["pos"][1] * self.tile_size - scroll[1]))  # type: ignore
+
+        for data in self.current_map["propmap"]:
+            d = self.current_map["propmap"][data]
+            surf.blit(self.prop_images[d["type"]], (d["pos"][0] * self.tile_size - scroll[0], d["pos"][1] * self.tile_size - scroll[1]))  # type: ignore

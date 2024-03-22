@@ -1,7 +1,7 @@
 import sys, time
 import pygame
 
-from scripts.utils import load_image, load_images, draw_text, save_map
+from scripts.utils import load_alpha_image, load_images, draw_text, save_map
 from scripts.editor_btn import Editor_Tile_Btn
 from scripts.map import Map
 from scripts.background import Bg
@@ -18,7 +18,7 @@ class Editor:
         self.clock = pygame.time.Clock()
         self.last_time = time.time()
         self.font = pygame.Font("assets/fonts/monogram.ttf")
-        self.star_tileset = load_image("star_tileset.png")
+        self.star_tileset = load_alpha_image("star_tileset.png")
         self.scroll: list[float] = [0, 0]
         self.selected_tile: None | Editor_Tile_Btn = None
         self.sidebar_mode: str = "tiles"
@@ -57,7 +57,13 @@ class Editor:
             "t29": self.star_tileset.subsurface((144, 160, 16, 16)),
         }
 
-        self.prop_images: dict[str, pygame.Surface] = {}
+        self.prop_images: dict[str, pygame.Surface] = {
+            "small_tree": self.star_tileset.subsurface((0, 80, 64, 64))
+        }
+
+        self.prop_image_icons: dict[str, pygame.Surface] = {
+            "small_tree": self.prop_images["small_tree"].subsurface((16, 32, 16, 16))
+        }
 
         # scale up tiles
         for img in self.star_tile_images:
@@ -65,10 +71,23 @@ class Editor:
                 self.star_tile_images[img], 3
             )
 
-        self.map = Map(self.SCALED_TILE_SIZE, self.star_tile_images)
+        # scale up props
+        for img in self.prop_images:
+            self.prop_images[img] = pygame.transform.scale_by(
+                self.prop_images[img], 3
+            )
+
+        # scale up prop image icons
+        for img in self.prop_image_icons:
+            self.prop_image_icons[img] = pygame.transform.scale_by(
+                self.prop_image_icons[img], 3
+            )
+
+        self.map = Map(self.SCALED_TILE_SIZE, self.star_tile_images, self.prop_images)
 
         self.img_list = list(self.star_tile_images)
         self.editor_tile_btns: list[Editor_Tile_Btn] = []
+        self.editor_prop_btns: list[Editor_Tile_Btn] = [Editor_Tile_Btn([48, 96], self.prop_image_icons["small_tree"], "small_tree")]
 
         for i in range(len(self.img_list)):
             img_x = 48 + (72 * (i // 12))
@@ -136,17 +155,29 @@ class Editor:
             right_click = clicked_curr[2]
             clicked_prev = clicked_curr
 
-            # selecting tiles
+            # selecting tiles/props
             if mx <= 288 and left_click:
-                for btn in self.editor_tile_btns:
-                    rect = pygame.Rect(
-                        btn.loc[0],
-                        btn.loc[1],
-                        btn.img.get_width(),
-                        btn.img.get_height(),
-                    )
-                    if rect.collidepoint(mx, my):
-                        self.selected_tile = btn
+                if self.sidebar_mode == "tiles":
+                    for btn in self.editor_tile_btns:
+                        rect = pygame.Rect(
+                            btn.loc[0],
+                            btn.loc[1],
+                            btn.img.get_width(),
+                            btn.img.get_height(),
+                        )
+                        if rect.collidepoint(mx, my):
+                            self.selected_tile = btn
+
+                elif self.sidebar_mode == "props":
+                    for btn in self.editor_prop_btns:
+                        rect = pygame.Rect(
+                            btn.loc[0],
+                            btn.loc[1],
+                            btn.img.get_width(),
+                            btn.img.get_height(),
+                        )
+                        if rect.collidepoint(mx, my):
+                            self.selected_tile = btn
                 
                 if self.sidebar_mode_toggle_btn.collidepoint(mx, my) and left_click_once:
                     if self.sidebar_mode == "tiles":
@@ -158,10 +189,19 @@ class Editor:
                 tile_x, tile_y = int(
                     (mx + self.scroll[0]) // self.SCALED_TILE_SIZE
                 ), int((my + self.scroll[1]) // self.SCALED_TILE_SIZE)
-                self.map.current_map["tilemap"][f"{tile_x};{tile_y}"] = {
-                    "type": self.selected_tile.name,
-                    "pos": [tile_x, tile_y],
-                }
+
+                if self.sidebar_mode == "tiles":
+                    self.map.current_map["tilemap"][f"{tile_x};{tile_y}"] = {
+                        "type": self.selected_tile.name,
+                        "pos": [tile_x, tile_y],
+                    }
+
+                elif self.sidebar_mode == "props":
+                    self.map.current_map["propmap"][f"{tile_x};{tile_y}"] = {
+                        "type": self.selected_tile.name,
+                        "pos": [tile_x, tile_y],
+                    }
+
                 self.map.render_to_surf(self.bg.current_bg, self.scroll)
 
             if mx > 288 and right_click:
@@ -194,6 +234,10 @@ class Editor:
             if self.sidebar_mode == "tiles":
                 for btn in self.editor_tile_btns:
                     btn.render(self.screen)
+            elif self.sidebar_mode == "props":
+                for btn in self.editor_prop_btns:
+                    btn.render(self.screen)
+
 
             draw_text(
                 self.screen, f"{round(self.clock.get_fps())} FPS", [20, 20], self.font
