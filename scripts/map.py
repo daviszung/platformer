@@ -2,10 +2,10 @@ import os, json
 import pygame
 
 class Map:
-    def __init__(self, tile_size: int, tile_images: dict[str, pygame.Surface], prop_images: dict[str, pygame.Surface]):
+    def __init__(self, tile_size: int, tiles: dict[str, dict[str, pygame.Surface]], props: dict[str, dict[str, pygame.Surface]]):
         self.tile_size = tile_size
-        self.tile_images = tile_images
-        self.prop_images = prop_images
+        self.tiles = tiles
+        self.props = props
         self.current_map: dict[str, dict[str, object]] = {
             "tilemap": {},
             "propmap": {},
@@ -30,10 +30,11 @@ class Map:
                 self.current_map = json.load(file)
 
     def render_to_surf(self, surf: pygame.Surface, scroll: list[float]):
+        print(self.current_map)
         for data in self.current_map["tilemap"]:
-            d = self.current_map["tilemap"][data]
-            surf.blit(self.tile_images[d["type"]], (d["pos"][0] * self.tile_size - scroll[0], d["pos"][1] * self.tile_size - scroll[1]))  # type: ignore
+            t = self.current_map["tilemap"][data]
+            surf.blit(self.tiles[f"r{t['rotation']}"][t["type"]], (t["pos"][0] * self.tile_size - scroll[0], t["pos"][1] * self.tile_size - scroll[1]))  # type: ignore
 
         for data in self.current_map["propmap"]:
-            d = self.current_map["propmap"][data]
-            surf.blit(self.prop_images[d["type"]], (d["pos"][0] * self.tile_size - scroll[0], d["pos"][1] * self.tile_size - scroll[1]))  # type: ignore
+            p = self.current_map["propmap"][data]
+            surf.blit(self.props[f"r{p['rotation']}"][p["type"]], (p["pos"][0] * self.tile_size - scroll[0], p["pos"][1] * self.tile_size - scroll[1]))  # type: ignore
