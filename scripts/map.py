@@ -30,7 +30,6 @@ class Map:
                 self.current_map = json.load(file)
 
     def render_to_surf(self, surf: pygame.Surface, scroll: list[float]):
-        print(self.current_map)
         for data in self.current_map["tilemap"]:
             t = self.current_map["tilemap"][data]
             surf.blit(self.tiles[f"r{t['rotation']}"][t["type"]], (t["pos"][0] * self.tile_size - scroll[0], t["pos"][1] * self.tile_size - scroll[1]))  # type: ignore
