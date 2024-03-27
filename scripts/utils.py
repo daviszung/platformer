@@ -34,15 +34,3 @@ def draw_text(
 ):
     img = font.render(text, False, color)
     surf.blit(img, loc)
-
-def save_map(map: object):
-    x = 1
-    while True:
-        if os.path.exists("maps/map" + str(x) + ".json"):
-            x += 1
-        else:
-            with open("maps/map" + str(x) + ".json", "w+") as file:
-                json.dump(map, file)
-                break
-
-            

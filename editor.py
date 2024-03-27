@@ -1,8 +1,8 @@
-import sys, time
+import sys, time, os
 import pygame
 
-from scripts.utils import load_images, draw_text, save_map
-from scripts.editor_btn import Editor_Tile_Btn
+from scripts.utils import load_images, draw_text
+from scripts.editor_btn import Editor_Tile_Btn, Map_Menu_Btn
 from scripts.map import Map
 from scripts.background import Bg
 from scripts.asset_manager import Asset_Manager
@@ -41,7 +41,6 @@ class Editor:
     def run_main_loop(self):
 
         clicked_prev = pygame.mouse.get_pressed()
-        keys_prev = pygame.key.get_pressed()
 
         while 1:
 
@@ -52,13 +51,16 @@ class Editor:
             dt *= 60
             self.last_time = t
 
+            keys = pygame.key.get_pressed()
+            kjp = pygame.key.get_just_pressed()
+
             for e in pygame.event.get():
                 if e.type == pygame.QUIT:
                     pygame.quit()
                     return
                 if e.type == pygame.KEYDOWN and pygame.key.get_mods() == 4097:
                     if e.dict["key"] == pygame.K_s:
-                        save_map(self.map.current_map)
+                        self.map.save_map(self.map.current_map["name"])
                         print("saved map")
                     if e.dict["key"] == pygame.K_l:
                         self.map.load_level("map1")
@@ -66,7 +68,6 @@ class Editor:
                         self.map.render_to_surf(self.bg.current_bg, self.scroll)
                         print("loaded map")
 
-            keys = pygame.key.get_pressed()
             if keys[pygame.K_s] and self.scroll[0] > 0:
                 self.scroll[0] -= 5 * dt
                 self.did_scroll = True
@@ -79,11 +80,13 @@ class Editor:
             if keys[pygame.K_d] and self.scroll[1] < 0:
                 self.scroll[1] += 5 * dt
                 self.did_scroll = True
-            if keys[pygame.K_r] and not keys_prev[pygame.K_r]:
+            if kjp[pygame.K_r]:
                 if self.rotation >= 3:
                     self.rotation = 0
                 else:
                     self.rotation += 1
+            if kjp[pygame.K_m]:
+                self.open_map_menu()
             
             keys_prev = keys
 
@@ -241,6 +244,70 @@ class Editor:
 
             pygame.display.update()
             self.clock.tick()
+
+    def open_map_menu(self):
+
+        map_files = os.listdir("maps")
+        selected_map: None | Map_Menu_Btn = None
+        map_menu_font = pygame.Font("assets/fonts/monogram.ttf", 40)
+        map_file_buttons = []
+        clicked_prev = pygame.mouse.get_pressed()
+
+        for i in range(len(map_files)):
+            surf = pygame.Surface((500, 40))
+            surf.fill((165, 153, 233))
+            draw_text(surf, f"{i}. {map_files[i]}", [10, 0], map_menu_font)
+            map_file_buttons.append(Map_Menu_Btn(pygame.Rect(self.SCREEN_SIZE[0] // 2, 100 + i * 40, 500, 40), surf, map_files[i], i))
+
+
+        while 1:
+
+            kjp = pygame.key.get_just_pressed()
+            mx, my = pygame.mouse.get_pos()
+
+            clicked_curr = pygame.mouse.get_pressed()
+            left_click = clicked_curr[0]
+            left_click_once = left_click and not clicked_prev[0]
+            right_click = clicked_curr[2]
+            clicked_prev = clicked_curr
+
+            for e in pygame.event.get():
+                if e.type == pygame.QUIT:
+                    pygame.quit()
+                    return
+
+            if kjp[pygame.K_c]:
+                break
+
+            if left_click_once:
+                for i in range(len(map_file_buttons)):
+                    if map_file_buttons[i].rect.collidepoint((mx, my)):
+                        if selected_map == map_file_buttons[i]:
+                            map_file_buttons[i].selected = False
+                            selected_map = None
+                            map_file_buttons[i].img.fill((165, 153, 233))
+                            draw_text(map_file_buttons[i].img, f"{i}. {map_files[i]}", [10, 0], map_menu_font)
+
+                        else:
+                            if selected_map:
+                                selected_map.img.fill((165, 153, 233))
+                                draw_text(selected_map.img, f"{selected_map.index}. {selected_map.name}", [10, 0], map_menu_font)
+
+                            map_file_buttons[i].selected = True
+                            selected_map = map_file_buttons[i]
+                            map_file_buttons[i].img.fill((179, 98, 255))
+                            draw_text(map_file_buttons[i].img, f"{i}. {map_files[i]}", [10, 0], map_menu_font)
+
+            # RENDERING
+
+            self.screen.fill((45, 43, 85))
+
+            for i in range(len(map_file_buttons)):
+                map_file_buttons[i].render(self.screen)
+
+            pygame.display.update()
+            self.clock.tick(60)
+
 
 
 editor = Editor()
